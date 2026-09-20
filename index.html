@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+  <title>Ghost Search Camera</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #000; color: #ddd;
+      font-family: "SF Mono", "Consolas", "Hiragino Sans", sans-serif;
+      overflow: hidden; height: 100%; width: 100%;
+      touch-action: none; -webkit-user-select: none; user-select: none;
+    }
+    #app { position: relative; width: 100%; height: 100%; }
+    .screen { position: absolute; inset: 0; display: none; background: #000; }
+    .screen.active { display: block; }
+
+    .btn {
+      background: rgba(0,0,0,0.75); border: 1px solid #00ff88; color: #00ff88;
+      padding: 14px 20px; border-radius: 10px; font-size: 15px; cursor: pointer;
+      text-align: center; min-width: 200px;
+    }
+    .btn:active { background: rgba(0,255,136,0.15); }
+    .btn.selected { background: #00ff88; color: #000; font-weight: bold; }
+    .btn.sub { min-width: 0; flex: 1; padding: 12px 10px; font-size: 14px; }
+    .btn:disabled { opacity: 0.35; pointer-events: none; }
+    .btn.two-line {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 4px; line-height: 1.25; padding: 12px 16px;
+    }
+    .btn.two-line .l1 { font-size: 15px; }
+    .btn.two-line .l2 { font-size: 11px; letter-spacing: 0.04em; opacity: 0.9; }
+
+    #modeSelect {
+      display: none; flex-direction: column; justify-content: center; align-items: center;
+      gap: 14px; padding: 20px; height: 100%; overflow-y: auto;
+    }
+    #modeSelect.active { display: flex; }
+    #appLogo {
+      width: 120px; height: 120px; object-fit: contain; display: block; margin: 0 auto;
+    }
+    #modeSelect h1 {
+      color: #00ff88; font-size: 18px; margin-bottom: 4px;
+      text-shadow: 0 0 8px rgba(0,255,136,0.4);
+    }
+    .mode-block {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; width: 100%; max-width: 280px;
+    }
+    .sub-row { display: none; gap: 8px; width: 100%; }
+    .sub-row.active { display: flex; }
+    .toggle-row {
+      display: none; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.05); padding: 10px 14px; border-radius: 8px;
+      border: 1px solid #1a4; width: 100%;
+    }
+    .toggle-row.active { display: flex; }
+    .toggle-row label { font-size: 13px; color: #00ff88; }
+    .switch { position: relative; width: 46px; height: 26px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; inset: 0; background: #333; border-radius: 26px; cursor: pointer;
+    }
+    .slider:before {
+      content: ""; position: absolute; width: 20px; height: 20px;
+      left: 3px; top: 3px; background: #888; border-radius: 50%; transition: 0.2s;
+    }
+    input:checked + .slider { background: #00ff88; }
+    input:checked + .slider:before { transform: translateX(20px); background: #000; }
+
+    /* Information */
+    #infoScreen {
+      display: none; flex-direction: column; justify-content: flex-start; align-items: center;
+      gap: 16px; height: 100%; padding: 24px 18px; overflow-y: auto;
+    }
+    #infoScreen.active { display: flex; }
+    #infoScreen .info-title {
+      color: #00ff88; font-size: 20px; letter-spacing: 1px;
+      text-shadow: 0 0 8px rgba(0,255,136,0.4); margin-top: 8px;
+    }
+    .info-body {
+      max-width: 340px; width: 100%;
+      font-size: 12px; line-height: 1.7;
+      color: rgba(0, 255, 136, 0.88);
+      text-align: left;
+    }
+    .info-body h3 {
+      color: #00ff88; font-size: 13px; margin: 1.1em 0 0.4em;
+      border-bottom: 1px solid rgba(0,255,136,0.3); padding-bottom: 2px;
+    }
+    .info-body a { color: #00ff88; }
+    .info-copy {
+      margin-top: 1.2em; font-size: 11px;
+      color: rgba(0,255,136,0.65); text-align: center;
+    }
+
+    /* TOP専用・九字切り画面（カメラなし） */
+    #kujiSoloScreen {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; height: 100%; padding: 20px; background: #000;
+    }
+    #kujiSoloScreen.active { display: flex; }
+    #kujiSoloScreen .solo-title {
+      color: #00ff88; font-size: 14px; letter-spacing: 0.12em; text-align: center;
+    }
+    #kujiSoloStage {
+      width: min(78vw, 300px); height: min(78vw, 300px); position: relative;
+    }
+    #kujiSoloSvg { width: 100%; height: 100%; display: block; overflow: visible; }
+    .cut-line {
+      fill: none; stroke: #00ff00; stroke-width: 0.6; stroke-linecap: square; opacity: 0;
+      filter: drop-shadow(0 0 1.5px rgba(0,255,0,0.4));
+    }
+    .cut-line.active { opacity: 1; transition: opacity 0.12s linear; }
+    .cut-line.afterimage { opacity: 0.38; transition: opacity 0.45s ease; }
+    .cut-line.full { opacity: 1; transition: opacity 0.5s ease; }
+    #kujiSoloChars {
+      display: flex; justify-content: center; gap: 0.3em; min-height: 1.8em;
+      font-size: 20px; color: #00ff00; letter-spacing: 0.08em;
+    }
+    #kujiSoloChars span { opacity: 0; transition: opacity 0.25s; }
+    #kujiSoloChars span.on { opacity: 1; }
+    #kujiSoloStatus {
+      font-size: 12px; color: rgba(0,255,136,0.7); min-height: 1.4em; text-align: center;
+      letter-spacing: 0.12em;
+    }
+    #kujiSoloStatus.mantra {
+      font-size: 18px; color: #00ff00; letter-spacing: 0.3em;
+      text-shadow: 0 0 10px rgba(0,255,0,0.45);
+    }
+    #kujiSoloTopBtn { display: none; }
+
+    #video, #recVideo {
+      position: absolute; width: 1px; height: 1px; top: -9999px; left: -9999px; opacity: 0;
+    }
+    #mainCanvas, #recMainCanvas {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #111; z-index: 1; display: block; touch-action: none;
+    }
+
+    #status, #recStatus {
+      position: absolute; top: 50px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.85); border: 1px solid #00ff88; color: #00ff88;
+      padding: 8px 16px; border-radius: 18px; font-size: 13px; z-index: 20;
+      max-width: 90%; text-align: center; pointer-events: none;
+      text-shadow: 0 0 6px rgba(0,255,136,0.5);
+    }
+    #telemetryLine, #telemetryLineRec {
+      position: absolute; top: 88px; left: 50%; transform: translateX(-50%);
+      z-index: 18; pointer-events: none; max-width: 94%; padding: 4px 10px;
+      font-size: 10px; color: rgba(0,255,136,0.85); text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      text-shadow: 0 0 4px rgba(0,0,0,0.95); background: rgba(0,0,0,0.45); border-radius: 6px;
+    }
+    #saveBanner {
+      display: none; position: absolute; top: 118px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.9); border: 1px solid #00ff88; color: #00ff88;
+      padding: 10px 18px; border-radius: 18px; font-size: 14px; font-weight: bold;
+      z-index: 25; max-width: 90%; text-align: center; pointer-events: none;
+      text-shadow: 0 0 8px rgba(0,255,136,0.6);
+    }
+
+    #backBtn, #backBtnRec {
+      position: absolute; top: 14px; left: 14px;
+      background: rgba(0,0,0,0.75); border: 1px solid #00ff88; color: #00ff88;
+      padding: 8px 14px; border-radius: 6px; font-size: 13px; z-index: 30;
+    }
+
+    .ctrl-shutter {
+      position: absolute; z-index: 30;
+      width: 74px; height: 74px; border-radius: 50%; border: 4px solid #fff;
+    }
+    #shutter { background: #00ff88; box-shadow: 0 0 16px rgba(0,255,136,0.6); }
+    #recBtn {
+      background: #e33; color: #fff; font-size: 13px; font-weight: bold;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 0 16px rgba(255,50,50,0.6);
+    }
+    #recBtn.recording { background: #111; border-color: #e33; color: #e33; }
+
+    .side-btn {
+      position: absolute; z-index: 30;
+      width: 56px; height: 56px; border-radius: 10px; border: 2px solid #00ff88;
+      background: #111; color: #00ff88; font-size: 11px;
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      line-height: 1.15; padding: 0; overflow: hidden;
+    }
+    .side-btn.kuji { background: #000; }
+    .side-btn.kuji img {
+      width: 56px; height: 56px; object-fit: contain; display: block; pointer-events: none;
+    }
+    .side-btn.kuji.active {
+      background: rgba(0,255,136,0.15); box-shadow: 0 0 10px rgba(0,255,136,0.4);
+    }
+    #galleryThumb, #galleryThumbRec {
+      background: #111 center/cover no-repeat; color: #666; font-size: 10px;
+    }
+
+    @media (orientation: portrait) {
+      .ctrl-shutter { bottom: 40px; left: 50%; transform: translateX(-50%); }
+      .side-btn.kuji { bottom: 48px; left: 18px; }
+      .side-btn.gallery { bottom: 48px; right: 18px; }
+    }
+    @media (orientation: landscape) {
+      .side-btn.gallery { top: 16%; right: 18px; bottom: auto; }
+      .ctrl-shutter { top: 50%; right: 10px; bottom: auto; left: auto; transform: translateY(-50%); }
+      .side-btn.kuji { bottom: 16%; right: 18px; left: auto; }
+    }
+
+    #galleryScreen { padding: 16px; overflow-y: auto; }
+    .g-header {
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid #00ff88; padding-bottom: 10px; margin-bottom: 14px;
+    }
+    .g-title { color: #00ff88; font-size: 15px; }
+    .g-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, 130px);
+      gap: 10px; justify-content: center;
+    }
+    .g-card {
+      position: relative; width: 130px; height: 130px;
+      border: 1px solid #333; border-radius: 6px; overflow: hidden;
+    }
+    .g-card img { width: 100%; height: 100%; object-fit: cover; }
+    .g-del {
+      position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+      background: rgba(200,0,0,0.85); color: #fff; border: none;
+      border-radius: 50%; font-size: 13px;
+    }
+
+    #viewer {
+      display: none; position: absolute; inset: 0; background: #000;
+      z-index: 50; touch-action: none;
+    }
+    #viewerStage {
+      position: absolute; inset: 0;
+      display: flex; justify-content: center; align-items: center; touch-action: none;
+    }
+    #viewerImg {
+      max-width: 100%; max-height: 100%; object-fit: contain;
+      transform-origin: center center; pointer-events: none;
+    }
+    #viewerClose {
+      position: absolute; top: 16px; right: 16px;
+      background: rgba(0,0,0,0.7); border: 1px solid #00ff88; color: #00ff88;
+      padding: 8px 16px; border-radius: 4px; z-index: 60;
+    }
+    #actionMenu {
+      display: none; position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+      background: rgba(20,20,20,0.96); border: 1px solid #00ff88; border-radius: 12px;
+      padding: 6px 0; z-index: 70; min-width: 200px; text-align: center;
+    }
+    #actionMenu button {
+      display: block; width: 100%; background: none; border: none;
+      color: #eee; padding: 14px 20px; font-size: 16px;
+    }
+    #actionMenu .save { color: #8f8; }
+    #actionMenu .delete { color: #f88; }
+    #actionMenu .cancel { color: #aaa; border-top: 1px solid #444; margin-top: 4px; }
+
+    #holdView {
+      display: none; position: absolute; inset: 0; background: #000; z-index: 40;
+      justify-content: center; align-items: center; flex-direction: column;
+    }
+    #holdView img {
+      max-width: 96%; max-height: 78%; object-fit: contain; border: 1px solid #333;
+    }
+    #holdLabel { margin-top: 12px; color: #00ff88; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="modeSelect" class="screen active">
+      <img id="appLogo" src="ghost.png" alt="Ghost Search Camera" width="120" height="120">
+      <h1>Ghost Search Camera</h1>
+      <div class="mode-block">
+        <button class="btn" id="btnCameraMode">Camera mode（カメラモード）</button>
+        <div class="sub-row" id="cameraSub">
+          <button class="btn sub" id="btnManual">Manual</button>
+          <button class="btn sub" id="btnAuto">Auto</button>
+        </div>
+      </div>
+      <div class="mode-block">
+        <button class="btn" id="btnRecordMode">Rec mode（録画モード）</button>
+        <div class="sub-row" id="recordSub">
+          <button class="btn sub" id="btnRec30">30s</button>
+          <button class="btn sub" id="btnRec60">60s</button>
+        </div>
+        <div class="toggle-row" id="audioRow">
+          <label>音声録音</label>
+          <label class="switch">
+            <input type="checkbox" id="audioToggle"><span class="slider"></span>
+          </label>
+        </div>
+      </div>
+      <button class="btn" id="btnGalleryMode">Gallery（ギャラリー）</button>
+      <button class="btn two-line" id="btnKujiSolo">
+        <span class="l1">九字切り</span>
+        <span class="l2">Purification Protocol</span>
+      </button>
+      <button class="btn" id="btnInfo">Information</button>
+    </div>
+
+    <div id="infoScreen" class="screen">
+      <div class="info-title">information</div>
+      <div class="info-body">
+        <h3>Ghost Search Camera について</h3>
+        <p>ジョークアプリです。しかしシステム上、「ただのジョークである」と断言もしません。解釈は利用者に委ねます。</p>
+        <p>本アプリは、ランダムな情報を表示するのではなく、プレビュー画面上のノイズや異常値を取得して可視化します。<br>
+        表示されるスコアやマーカー等はアプリ独自の演出ですが、心霊現象の解明や実在を保証するものではありません。<br>
+        ただし、本アプリが捉えるものが「ただのノイズ」にとどまらない可能性を否定するものでもありません。<br>
+        ※「九字切り」等の演出はエンタメ表現であり、宗教的効果や除霊効果を約束するものではありません。</p>
+        <h3>撮影・画像の保存について</h3>
+        <p>Camera modeの画像はアプリ内に一時保存され、ユーザー操作により端末へ保存できます。<br>
+        Rec modeの動画は、端末の保存／ダウンロード機能を通じて保存されます。</p>
+        <p>撮影・録画の際は、周囲の安全とマナーに配慮してお楽しみください。</p>
+        <p>※免責事項および詳細な利用規約・禁止事項は<a href="terms.html">利用規約</a>をご確認ください。</p>
+        <div class="info-copy">©盆栽企画 2026 All Rights Reserved.</div>
+      </div>
+      <button class="btn" id="btnInfoBack">TOP</button>
+    </div>
+
+    <!-- TOPから単体・九字切り（カメラなし） -->
+    <div id="kujiSoloScreen" class="screen">
+      <div class="solo-title">九字切り : KUJIGIRI</div>
+      <div id="kujiSoloStage">
+        <svg id="kujiSoloSvg" viewBox="0 0 100 100" aria-hidden="true">
+          <line id="s_h0" class="cut-line" x1="4" y1="22" x2="96" y2="22" />
+          <line id="s_h1" class="cut-line" x1="4" y1="36" x2="96" y2="36" />
+          <line id="s_h2" class="cut-line" x1="4" y1="50" x2="96" y2="50" />
+          <line id="s_h3" class="cut-line" x1="4" y1="64" x2="96" y2="64" />
+          <line id="s_h4" class="cut-line" x1="4" y1="78" x2="96" y2="78" />
+          <line id="s_v0" class="cut-line" x1="22" y1="4" x2="22" y2="96" />
+          <line id="s_v1" class="cut-line" x1="41.33" y1="4" x2="41.33" y2="96" />
+          <line id="s_v2" class="cut-line" x1="58.67" y1="4" x2="58.67" y2="96" />
+          <line id="s_v3" class="cut-line" x1="78" y1="4" x2="78" y2="96" />
+        </svg>
+      </div>
+      <div id="kujiSoloChars">
+        <span>臨</span><span>兵</span><span>闘</span><span>者</span><span>皆</span>
+        <span>陣</span><span>列</span><span>在</span><span>前</span>
+      </div>
+      <div id="kujiSoloStatus">STANDBY</div>
+      <button class="btn" id="kujiSoloStart">START PROTOCOL</button>
+      <button class="btn" id="kujiSoloTopBtn">TOP</button>
+    </div>
+
+    <div id="cameraScreen" class="screen">
+      <video id="video" playsinline muted></video>
+      <canvas id="mainCanvas"></canvas>
+      <div id="status">Cam -</div>
+      <div id="telemetryLine">[DET] SCAN... OBJ:0  DT=0ms</div>
+      <button id="backBtn">Return</button>
+      <button id="shutter" class="ctrl-shutter"></button>
+      <div class="side-btn kuji" id="kujiBtn"><img src="9.png" alt="九字切り" width="56" height="56"></div>
+      <div class="side-btn gallery" id="galleryThumb">Empty</div>
+    </div>
+
+    <div id="recordScreen" class="screen">
+      <video id="recVideo" playsinline muted></video>
+      <canvas id="recMainCanvas"></canvas>
+      <div id="recStatus">Cam -</div>
+      <div id="telemetryLineRec">[DET] SCAN... OBJ:0  DT=0ms</div>
+      <div id="saveBanner">Save to Camera Roll</div>
+      <button id="backBtnRec">Return</button>
+      <button id="recBtn" class="ctrl-shutter">● REC</button>
+      <div class="side-btn kuji" id="kujiBtnRec"><img src="9.png" alt="九字切り" width="56" height="56"></div>
+      <div class="side-btn gallery" id="galleryThumbRec">Empty</div>
+    </div>
+
+    <div id="galleryScreen" class="screen">
+      <div class="g-header">
+        <div class="g-title">Gallery</div>
+        <button class="btn" id="closeGallery" style="padding:6px 12px;min-width:auto;">Close</button>
+      </div>
+      <div class="g-grid" id="galleryGrid"></div>
+    </div>
+
+    <div id="holdView">
+      <img id="holdImg" src="" alt="captured">
+      <div id="holdLabel">Holding the moment...</div>
+    </div>
+
+    <div id="viewer">
+      <div id="viewerStage"><img id="viewerImg" src="" alt="enlarged"></div>
+      <button id="viewerClose">Close</button>
+      <div id="actionMenu">
+        <button class="save" id="btnSave">保存</button>
+        <button class="delete" id="btnDelete">削除</button>
+        <button class="cancel" id="btnCancel">キャンセル</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = null, recordDuration = 30, audioEnabled = false;
+    let stream = null, images = [], regions = [];
+    let isProcessing = false, autoFired = false, lastDetect = 0;
+    let mediaRecorder = null, recordedChunks = [], isRecording = false;
+    let recordTimer = null, remainSec = 0, currentViewerIndex = -1;
+    let running = false, camLabel = '1', readyStatusText = '';
+    let saveBannerTimer = null, lastAnalyzeMs = 0, lastTelemetryText = '';
+    let liveScale = 1, liveX = 0, liveY = 0;
+    let liveStartX = 0, liveStartY = 0, liveInitDist = 0, liveInitScale = 1, liveLastTap = 0;
+    const LIVE_MAX = 5;
+    let scale = 1, posX = 0, posY = 0;
+    let startX = 0, startY = 0, initialDistance = 0, initialScale = 1;
+    let lastTapTime = 0, longPressTimer = null, moved = false;
+    const MAX_SCALE = 5;
+
+    const KUJI_STEPS = [
+      { id: 'h0' }, { id: 'v0' }, { id: 'h1' }, { id: 'v1' }, { id: 'h2' },
+      { id: 'v2' }, { id: 'h3' }, { id: 'v3' }, { id: 'h4' }
+    ];
+    const KUJI_CHARS = ['臨','兵','闘','者','皆','陣','列','在','前'];
+    const KUJI_GEOM = {
+      h0: [4,22,96,22], h1: [4,36,96,36], h2: [4,50,96,50], h3: [4,64,96,64], h4: [4,78,96,78],
+      v0: [22,4,22,96], v1: [41.33,4,41.33,96], v2: [58.67,4,58.67,96], v3: [78,4,78,96]
+    };
+    let kujiRunning = false, kujiLineState = {}, kujiCharCount = 0, kujiMantra = false;
+    let kujiSoloRunning = false;
+
+    const modeSelect = document.getElementById('modeSelect');
+    const infoScreen = document.getElementById('infoScreen');
+    const kujiSoloScreen = document.getElementById('kujiSoloScreen');
+    const cameraSub = document.getElementById('cameraSub');
+    const recordSub = document.getElementById('recordSub');
+    const audioRow = document.getElementById('audioRow');
+    const cameraScreen = document.getElementById('cameraScreen');
+    const recordScreen = document.getElementById('recordScreen');
+    const galleryScreen = document.getElementById('galleryScreen');
+    const video = document.getElementById('video');
+    const mainCanvas = document.getElementById('mainCanvas');
+    const ctx = mainCanvas.getContext('2d', { willReadFrequently: true });
+    const recVideo = document.getElementById('recVideo');
+    const recMainCanvas = document.getElementById('recMainCanvas');
+    const recCtx = recMainCanvas.getContext('2d', { willReadFrequently: true });
+    const statusEl = document.getElementById('status');
+    const recStatus = document.getElementById('recStatus');
+    const telemetryLine = document.getElementById('telemetryLine');
+    const telemetryLineRec = document.getElementById('telemetryLineRec');
+    const saveBanner = document.getElementById('saveBanner');
+    const shutter = document.getElementById('shutter');
+    const recBtn = document.getElementById('recBtn');
+    const kujiBtn = document.getElementById('kujiBtn');
+    const kujiBtnRec = document.getElementById('kujiBtnRec');
+    const galleryThumb = document.getElementById('galleryThumb');
+    const galleryThumbRec = document.getElementById('galleryThumbRec');
+    const holdView = document.getElementById('holdView');
+    const holdImg = document.getElementById('holdImg');
+    const galleryGrid = document.getElementById('galleryGrid');
+    const viewer = document.getElementById('viewer');
+    const viewerStage = document.getElementById('viewerStage');
+    const viewerImg = document.getElementById('viewerImg');
+    const actionMenu = document.getElementById('actionMenu');
+    const btnCameraMode = document.getElementById('btnCameraMode');
+    const btnRecordMode = document.getElementById('btnRecordMode');
+    const btnManual = document.getElementById('btnManual');
+    const btnAuto = document.getElementById('btnAuto');
+    const btnRec30 = document.getElementById('btnRec30');
+    const btnRec60 = document.getElementById('btnRec60');
+    const btnKujiSolo = document.getElementById('btnKujiSolo');
+    const kujiSoloStart = document.getElementById('kujiSoloStart');
+    const kujiSoloTopBtn = document.getElementById('kujiSoloTopBtn');
+    const kujiSoloStatus = document.getElementById('kujiSoloStatus');
+    const kujiSoloCharSpans = [...document.querySelectorAll('#kujiSoloChars span')];
+
+    function showScreen(name) {
+      [modeSelect, infoScreen, kujiSoloScreen, cameraScreen, recordScreen, galleryScreen]
+        .forEach(s => s.classList.remove('active'));
+      if (name === 'mode') modeSelect.classList.add('active');
+      if (name === 'info') infoScreen.classList.add('active');
+      if (name === 'kujiSolo') kujiSoloScreen.classList.add('active');
+      if (name === 'camera') cameraScreen.classList.add('active');
+      if (name === 'record') recordScreen.classList.add('active');
+      if (name === 'gallery') galleryScreen.classList.add('active');
+    }
+    function setSelected(btn, group) {
+      group.forEach(b => b.classList.remove('selected'));
+      if (btn) btn.classList.add('selected');
+    }
+    function resetLiveZoom() { liveScale = 1; liveX = 0; liveY = 0; }
+    function showSaveBanner() {
+      saveBanner.textContent = 'Save to Camera Roll';
+      saveBanner.style.display = 'block';
+      clearTimeout(saveBannerTimer);
+      saveBannerTimer = setTimeout(() => { saveBanner.style.display = 'none'; }, 5000);
+    }
+    function hideSaveBanner() {
+      saveBanner.style.display = 'none';
+      clearTimeout(saveBannerTimer);
+    }
+    function f1(n) { return (Math.round(n * 10) / 10).toFixed(1); }
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function updateTelemetryLine() {
+      let text;
+      if (regions.length === 0) text = `[DET] SCAN... OBJ:0  DT=${lastAnalyzeMs}ms`;
+      else {
+        const r = regions[0];
+        const conf = Math.min(99.9, Math.max(0, r.score * 100));
+        text = `[DET] HIT:${regions.length}  RECT:${f1(r.cx-r.rw)},${f1(r.cy-r.rh)},${f1(r.rw*2)}x${f1(r.rh*2)}  CONF:${f1(conf)}%`;
+      }
+      if (text === lastTelemetryText) return;
+      lastTelemetryText = text;
+      if (cameraScreen.classList.contains('active')) telemetryLine.textContent = text;
+      if (recordScreen.classList.contains('active')) telemetryLineRec.textContent = text;
+    }
+
+    /* ===== TOP単体・九字切り ===== */
+    function resetKujiSoloVisual() {
+      document.querySelectorAll('#kujiSoloSvg .cut-line').forEach(el => {
+        el.classList.remove('active', 'afterimage', 'full');
+      });
+      kujiSoloCharSpans.forEach(s => s.classList.remove('on'));
+      kujiSoloStatus.classList.remove('mantra');
+      kujiSoloStatus.textContent = 'STANDBY';
+      kujiSoloStart.style.display = 'block';
+      kujiSoloStart.disabled = false;
+      kujiSoloTopBtn.style.display = 'none';
+    }
+
+    async function runKujiSolo() {
+      if (kujiSoloRunning) return;
+      kujiSoloRunning = true;
+      kujiSoloStart.disabled = true;
+      btnKujiSolo.disabled = true;
+      kujiSoloTopBtn.style.display = 'none';
+      resetKujiSoloVisual();
+      kujiSoloStart.style.display = 'none';
+      kujiSoloStatus.textContent = 'EXECUTING...';
+
+      const mapId = { h0:'s_h0', h1:'s_h1', h2:'s_h2', h3:'s_h3', h4:'s_h4',
+                      v0:'s_v0', v1:'s_v1', v2:'s_v2', v3:'s_v3' };
+
+      for (let i = 0; i < KUJI_STEPS.length; i++) {
+        const sid = mapId[KUJI_STEPS[i].id];
+        kujiSoloCharSpans[i].classList.add('on');
+        const el = document.getElementById(sid);
+        el.classList.remove('afterimage', 'full');
+        el.classList.add('active');
+        await sleep(1200);
+        el.classList.remove('active');
+        el.classList.add('afterimage');
+        if (i < KUJI_STEPS.length - 1) await sleep(1000);
+      }
+      document.querySelectorAll('#kujiSoloSvg .cut-line').forEach(el => {
+        el.classList.remove('active', 'afterimage');
+        el.classList.add('full');
+      });
+      kujiSoloStatus.classList.add('mantra');
+      kujiSoloStatus.textContent = '急急如律令';
+      await sleep(5000);
+
+      kujiSoloStatus.classList.remove('mantra');
+      kujiSoloStatus.textContent = 'COMPLETE — TOPで戻る';
+      kujiSoloTopBtn.style.display = 'block';
+      kujiSoloRunning = false;
+      btnKujiSolo.disabled = false;
+    }
+
+    btnKujiSolo.onclick = () => {
+      if (kujiSoloRunning) return;
+      resetKujiSoloVisual();
+      showScreen('kujiSolo');
+    };
+    kujiSoloStart.onclick = () => runKujiSolo();
+    kujiSoloTopBtn.onclick = () => {
+      resetKujiSoloVisual();
+      showScreen('mode');
+    };
+
+    /* ===== カメラ/Rec内九字（canvas焼き込み） ===== */
+    function drawKujiOverlay(c, w, h) {
+      if (!kujiRunning && !kujiMantra && kujiCharCount === 0) return;
+      const size = Math.min(w, h) * 0.55;
+      const ox = (w - size) / 2;
+      const oy = (h - size) / 2 - h * 0.06;
+      const map = (x, y) => [ox + (x / 100) * size, oy + (y / 100) * size];
+      c.save();
+      c.lineCap = 'square';
+      c.lineWidth = Math.max(1, size * 0.006);
+      Object.keys(KUJI_GEOM).forEach(id => {
+        const st = kujiLineState[id];
+        if (!st) return;
+        const [x1, y1, x2, y2] = KUJI_GEOM[id];
+        const [a, b] = map(x1, y1);
+        const [d, e] = map(x2, y2);
+        c.globalAlpha = (st === 'afterimage') ? 0.38 : 1;
+        c.strokeStyle = 'rgba(0,255,136,1)';
+        c.beginPath(); c.moveTo(a, b); c.lineTo(d, e); c.stroke();
+      });
+      c.globalAlpha = 1;
+      const charY = oy + size + size * 0.08;
+      if (kujiCharCount > 0) {
+        c.font = `bold ${Math.max(14, size * 0.065)}px "Hiragino Sans", sans-serif`;
+        c.fillStyle = 'rgba(0,255,136,0.95)';
+        c.textAlign = 'center'; c.textBaseline = 'top';
+        c.fillText(KUJI_CHARS.slice(0, kujiCharCount).join(''), w / 2, charY);
+      }
+      if (kujiMantra) {
+        const fontSize = Math.max(16, size * 0.075);
+        c.font = `bold ${fontSize}px "Hiragino Sans", sans-serif`;
+        c.fillStyle = 'rgba(0,255,136,1)';
+        c.textAlign = 'center'; c.textBaseline = 'top';
+        c.fillText('急急如律令', w / 2, charY + fontSize * 1.8);
+      }
+      c.restore();
+    }
+    function resetKuji() {
+      kujiRunning = false; kujiMantra = false; kujiCharCount = 0; kujiLineState = {};
+      kujiBtn.classList.remove('active'); kujiBtnRec.classList.remove('active');
+    }
+    async function runKujiProtocol() {
+      if (kujiRunning) return;
+      kujiRunning = true; kujiMantra = false; kujiCharCount = 0; kujiLineState = {};
+      kujiBtn.classList.add('active'); kujiBtnRec.classList.add('active');
+      for (let i = 0; i < KUJI_STEPS.length; i++) {
+        const id = KUJI_STEPS[i].id;
+        kujiCharCount = i + 1;
+        kujiLineState[id] = 'active';
+        await sleep(1200);
+        kujiLineState[id] = 'afterimage';
+        if (i < KUJI_STEPS.length - 1) await sleep(1000);
+      }
+      Object.keys(KUJI_GEOM).forEach(id => { kujiLineState[id] = 'full'; });
+      kujiMantra = true;
+      await sleep(5000);
+      resetKuji();
+    }
+    kujiBtn.onclick = () => runKujiProtocol();
+    kujiBtnRec.onclick = () => runKujiProtocol();
+
+    btnCameraMode.onclick = () => {
+      setSelected(btnCameraMode, [btnCameraMode, btnRecordMode]);
+      cameraSub.classList.add('active'); recordSub.classList.remove('active'); audioRow.classList.remove('active');
+      setSelected(null, [btnManual, btnAuto, btnRec30, btnRec60]);
+    };
+    btnRecordMode.onclick = () => {
+      setSelected(btnRecordMode, [btnCameraMode, btnRecordMode]);
+      recordSub.classList.add('active'); audioRow.classList.add('active'); cameraSub.classList.remove('active');
+      setSelected(null, [btnManual, btnAuto, btnRec30, btnRec60]);
+    };
+    document.getElementById('btnGalleryMode').onclick = () => {
+      setSelected(null, [btnCameraMode, btnRecordMode]);
+      cameraSub.classList.remove('active'); recordSub.classList.remove('active'); audioRow.classList.remove('active');
+      renderGallery(); showScreen('gallery');
+    };
+    document.getElementById('btnInfo').onclick = () => {
+      setSelected(null, [btnCameraMode, btnRecordMode]);
+      cameraSub.classList.remove('active'); recordSub.classList.remove('active'); audioRow.classList.remove('active');
+      showScreen('info');
+    };
+    document.getElementById('btnInfoBack').onclick = () => showScreen('mode');
+    btnManual.onclick = () => { setSelected(btnManual, [btnManual, btnAuto]); startCamera('manual'); };
+    btnAuto.onclick = () => { setSelected(btnAuto, [btnManual, btnAuto]); startCamera('auto'); };
+    btnRec30.onclick = () => { setSelected(btnRec30, [btnRec30, btnRec60]); startRecordSetup(30); };
+    btnRec60.onclick = () => { setSelected(btnRec60, [btnRec30, btnRec60]); startRecordSetup(60); };
+    document.getElementById('audioToggle').onchange = e => { audioEnabled = e.target.checked; };
+
+    document.getElementById('backBtn').onclick = () => {
+      stopCamera(); showScreen('mode');
+      setSelected(null, [btnCameraMode, btnRecordMode, btnManual, btnAuto]);
+      cameraSub.classList.remove('active');
+    };
+    document.getElementById('backBtnRec').onclick = () => {
+      stopRecordMode(); showScreen('mode');
+      setSelected(null, [btnCameraMode, btnRecordMode, btnRec30, btnRec60]);
+      recordSub.classList.remove('active'); audioRow.classList.remove('active');
+    };
+    document.getElementById('closeGallery').onclick = () => showScreen('mode');
+
+    async function getCameraStream(withAudio = false) {
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } }, audio: withAudio
+        });
+      } catch (e) {
+        return await navigator.mediaDevices.getUserMedia({ video: true, audio: withAudio });
+      }
+    }
+    function detectCamLabel(track) {
+      if (!track) return '1';
+      const label = (track.label || '').toLowerCase();
+      const facing = track.getSettings().facingMode || '';
+      if (facing === 'environment' || /back|rear|environment/.test(label)) return '1 Back';
+      if (facing === 'user' || /front|user/.test(label)) return '1 Front';
+      return '1';
+    }
+    function drawCoverZoom(c, v, cw, ch) {
+      const vw = v.videoWidth, vh = v.videoHeight;
+      if (!vw || !vh) return;
+      const cr = cw / ch, vr = vw / vh;
+      let sx, sy, sw, sh;
+      if (vr > cr) { sh = vh; sw = vh * cr; sx = (vw - sw) / 2; sy = 0; }
+      else { sw = vw; sh = vw / cr; sx = 0; sy = (vh - sh) / 2; }
+      const z = liveScale;
+      const zsw = sw / z, zsh = sh / z;
+      const maxPanX = (sw - zsw) / 2, maxPanY = (sh - zsh) / 2;
+      const panX = Math.max(-maxPanX, Math.min(maxPanX, -liveX * (sw / cw) / z));
+      const panY = Math.max(-maxPanY, Math.min(maxPanY, -liveY * (sh / ch) / z));
+      c.drawImage(v, sx + (sw - zsw) / 2 + panX, sy + (sh - zsh) / 2 + panY, zsw, zsh, 0, 0, cw, ch);
+    }
+
+    async function startCamera(mode) {
+      currentMode = mode; resetLiveZoom(); resetKuji(); lastTelemetryText = '';
+      statusEl.textContent = 'Cam ...';
+      try {
+        stream = await getCameraStream(false);
+        video.srcObject = stream;
+        await new Promise(r => { if (video.readyState >= 1) r(); else video.onloadedmetadata = r; });
+        await video.play();
+        mainCanvas.width = window.innerWidth; mainCanvas.height = window.innerHeight;
+        camLabel = detectCamLabel(stream.getVideoTracks()[0]);
+        statusEl.textContent = mode === 'auto' ? `Cam ${camLabel} Auto` : `Cam ${camLabel}`;
+        showScreen('camera'); running = true; requestAnimationFrame(camLoop);
+      } catch (e) {
+        alert('カメラ起動失敗\n' + e.message); showScreen('mode');
+      }
+    }
+    function stopCamera() {
+      running = false;
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      regions = []; autoFired = false; resetLiveZoom(); resetKuji();
+      lastTelemetryText = '';
+      telemetryLine.textContent = '[DET] SCAN... OBJ:0  DT=0ms';
+    }
+    function camLoop(t) {
+      if (!running || !cameraScreen.classList.contains('active')) return;
+      try { drawCoverZoom(ctx, video, mainCanvas.width, mainCanvas.height); } catch (e) {}
+      if (t - lastDetect > 400) {
+        lastDetect = t;
+        const t0 = performance.now();
+        analyze(ctx, mainCanvas.width, mainCanvas.height, true);
+        lastAnalyzeMs = Math.round(performance.now() - t0);
+        updateTelemetryLine();
+      }
+      drawRegions(ctx);
+      drawKujiOverlay(ctx, mainCanvas.width, mainCanvas.height);
+      requestAnimationFrame(camLoop);
+    }
+
+    function analyze(context, w, h, enableAuto) {
+      try {
+        const img = context.getImageData(0, 0, w, h);
+        const data = img.data;
+        const gray = new Float32Array(w * h);
+        for (let i = 0; i < data.length; i += 4) gray[i>>2] = data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114;
+        const scoreMap = new Float32Array(w * h);
+        const win = 6; let maxS = 0.001;
+        for (let y = win; y < h-win; y += 2) {
+          for (let x = win; x < w-win; x += 2) {
+            let sum=0, sum2=0, n=0;
+            for (let dy=-win; dy<=win; dy+=2) for (let dx=-win; dx<=win; dx+=2) {
+              const v = gray[(y+dy)*w+(x+dx)]; sum += v; sum2 += v*v; n++;
+            }
+            const mean = sum/n, variance = (sum2/n)-mean*mean;
+            const gx = gray[y*w+x+1]-gray[y*w+x-1], gy = gray[(y+1)*w+x]-gray[(y-1)*w+x];
+            const s = variance*0.011 + Math.sqrt(gx*gx+gy*gy)*0.11;
+            scoreMap[y*w+x] = s; if (s > maxS) maxS = s;
+          }
+        }
+        for (let i=0;i<scoreMap.length;i++) scoreMap[i] /= maxS;
+        const threshold = 0.64;
+        const visited = new Uint8Array(w*h);
+        const found = [];
+        function flood(x,y,list) {
+          const stack=[[x,y]];
+          while(stack.length){
+            const [cx,cy]=stack.pop();
+            const idx=cy*w+cx;
+            if(cx<0||cy<0||cx>=w||cy>=h||visited[idx]||scoreMap[idx]<threshold) continue;
+            visited[idx]=1; list.push([cx,cy,scoreMap[idx]]);
+            stack.push([cx+2,cy],[cx-2,cy],[cx,cy+2],[cx,cy-2]);
+          }
+        }
+        for (let y=12;y<h-12;y+=8) for (let x=12;x<w-12;x+=8) {
+          if (!visited[y*w+x] && scoreMap[y*w+x]>=threshold) {
+            const list=[]; flood(x,y,list);
+            if (list.length>80) {
+              let sx=0,sy=0,ss=0,minX=w,maxX=0,minY=h,maxY=0;
+              list.forEach(([px,py,sc])=>{ sx+=px;sy+=py;ss+=sc;
+                if(px<minX)minX=px;if(px>maxX)maxX=px;if(py<minY)minY=py;if(py>maxY)maxY=py; });
+              found.push({ cx:sx/list.length, cy:sy/list.length,
+                rw:(maxX-minX)*0.48+18, rh:(maxY-minY)*0.48+18, score:ss/list.length });
+            }
+          }
+        }
+        found.sort((a,b)=>b.score-a.score);
+        regions = found.slice(0,2);
+        if (regions.length>0) {
+          const top = regions[0].score;
+          const msg = top>0.78 ? `Cam ${camLabel} !` : top>0.68 ? `Cam ${camLabel} Strong` : `Cam ${camLabel} Faint`;
+          if (enableAuto) statusEl.textContent = msg;
+          else if (!isRecording) recStatus.textContent = msg;
+          if (enableAuto && currentMode==='auto' && !autoFired && top>0.72) {
+            autoFired = true; capturePhoto(); setTimeout(()=>{ autoFired=false; }, 14000);
+          }
+        } else {
+          if (enableAuto) statusEl.textContent = `Cam ${camLabel}`;
+          else if (!isRecording) recStatus.textContent = readyStatusText || `Cam ${camLabel}`;
+        }
+      } catch (e) {}
+    }
+    function drawRegions(context) {
+      regions.forEach(r => {
+        context.beginPath();
+        context.ellipse(r.cx, r.cy, r.rw, r.rh, 0, 0, Math.PI*2);
+        context.strokeStyle = 'rgba(255,200,0,0.9)';
+        context.lineWidth = 3;
+        context.stroke();
+      });
+    }
+
+    shutter.onclick = () => capturePhoto();
+    function capturePhoto() {
+      if (isProcessing) return;
+      isProcessing = true;
+      const normal = mainCanvas.toDataURL('image/jpeg', 0.88);
+      images.unshift(normal);
+      let manifestUrl = null;
+      if (regions.length > 0) {
+        const m = document.createElement('canvas');
+        m.width = mainCanvas.width; m.height = mainCanvas.height;
+        const mctx = m.getContext('2d');
+        mctx.drawImage(mainCanvas, 0, 0);
+        mctx.fillStyle = 'rgba(0,5,15,0.28)';
+        mctx.fillRect(0,0,m.width,m.height);
+        regions.forEach(r => {
+          const g = mctx.createRadialGradient(r.cx,r.cy,2,r.cx,r.cy,Math.max(r.rw,r.rh)*1.1);
+          g.addColorStop(0, 'rgba(170,230,255,0.5)');
+          g.addColorStop(0.45, 'rgba(80,30,140,0.4)');
+          g.addColorStop(1, 'rgba(0,0,20,0)');
+          mctx.fillStyle = g;
+          mctx.beginPath();
+          mctx.ellipse(r.cx,r.cy,r.rw*1.05,r.rh*1.05,0,0,Math.PI*2);
+          mctx.fill();
+        });
+        manifestUrl = m.toDataURL('image/jpeg', 0.88);
+        images.unshift(manifestUrl);
+      }
+      updateThumbs();
+      holdImg.src = manifestUrl || normal;
+      holdView.style.display = 'flex';
+      setTimeout(() => { holdView.style.display = 'none'; isProcessing = false; }, 4400);
+    }
+    function updateThumbs() {
+      const src = images[0] || '';
+      [galleryThumb, galleryThumbRec].forEach(el => {
+        if (src) { el.style.backgroundImage = `url(${src})`; el.textContent = ''; }
+        else { el.style.backgroundImage = 'none'; el.textContent = 'Empty'; }
+      });
+    }
+
+    async function startRecordSetup(sec) {
+      recordDuration = sec;
+      audioEnabled = document.getElementById('audioToggle').checked;
+      resetLiveZoom(); hideSaveBanner(); resetKuji(); lastTelemetryText = '';
+      try {
+        stream = await getCameraStream(audioEnabled);
+        recVideo.srcObject = stream;
+        await new Promise(r => { if (recVideo.readyState >= 1) r(); else recVideo.onloadedmetadata = r; });
+        await recVideo.play();
+        recMainCanvas.width = window.innerWidth; recMainCanvas.height = window.innerHeight;
+        camLabel = detectCamLabel(stream.getVideoTracks()[0]);
+        readyStatusText = `Cam ${camLabel} ${sec}s`;
+        showScreen('record');
+        recStatus.textContent = readyStatusText;
+        recBtn.textContent = '● REC';
+        recBtn.classList.remove('recording');
+        running = true; requestAnimationFrame(recLoop);
+      } catch (e) {
+        alert('カメラ起動失敗\n' + e.message); showScreen('mode');
+      }
+    }
+    function stopRecordMode() {
+      running = false;
+      if (isRecording) stopRecording();
+      if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+      regions = []; resetLiveZoom(); hideSaveBanner(); resetKuji();
+      lastTelemetryText = '';
+      telemetryLineRec.textContent = '[DET] SCAN... OBJ:0  DT=0ms';
+    }
+    function recLoop(t) {
+      if (!running || !recordScreen.classList.contains('active')) return;
+      try { drawCoverZoom(recCtx, recVideo, recMainCanvas.width, recMainCanvas.height); } catch (e) {}
+      if (t - lastDetect > 400) {
+        lastDetect = t;
+        const t0 = performance.now();
+        analyze(recCtx, recMainCanvas.width, recMainCanvas.height, false);
+        lastAnalyzeMs = Math.round(performance.now() - t0);
+        updateTelemetryLine();
+      }
+      drawRegions(recCtx);
+      drawKujiOverlay(recCtx, recMainCanvas.width, recMainCanvas.height);
+      requestAnimationFrame(recLoop);
+    }
+
+    recBtn.onclick = () => { if (!isRecording) startRecording(); else stopRecording(); };
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60), s = sec % 60;
+      return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    }
+    function startRecording() {
+      recordedChunks = []; hideSaveBanner();
+      const canvasStream = recMainCanvas.captureStream(30);
+      if (audioEnabled && stream) {
+        const at = stream.getAudioTracks();
+        if (at.length) canvasStream.addTrack(at[0]);
+      }
+      let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) options = { mimeType: 'video/webm' };
+      mediaRecorder = new MediaRecorder(canvasStream, options);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = () => {
+        recStatus.textContent = 'Saving...';
+        try {
+          const blob = new Blob(recordedChunks, { type: 'video/webm' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = `residual_${Date.now()}.webm`; a.click();
+          URL.revokeObjectURL(url);
+          recStatus.textContent = readyStatusText;
+          showSaveBanner();
+        } catch (err) {
+          recStatus.textContent = 'Save failed';
+          setTimeout(() => { if (!isRecording) recStatus.textContent = readyStatusText; }, 3000);
+        }
+      };
+      mediaRecorder.start(200);
+      isRecording = true;
+      recBtn.textContent = '■ STOP';
+      recBtn.classList.add('recording');
+      remainSec = recordDuration;
+      recStatus.textContent = `Recording ${formatTime(remainSec)}`;
+      recordTimer = setInterval(() => {
+        remainSec--;
+        if (isRecording) recStatus.textContent = `Recording ${formatTime(Math.max(0, remainSec))}`;
+        if (remainSec <= 0) stopRecording();
+      }, 1000);
+    }
+    function stopRecording() {
+      if (!isRecording) return;
+      clearInterval(recordTimer);
+      isRecording = false;
+      recBtn.textContent = '● REC';
+      recBtn.classList.remove('recording');
+      recStatus.textContent = 'Saving...';
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+      else recStatus.textContent = readyStatusText;
+    }
+
+    function getDistance(t1, t2) {
+      return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    }
+    function bindLiveZoom(canvasEl) {
+      canvasEl.addEventListener('touchstart', e => {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+          liveStartX = e.touches[0].clientX; liveStartY = e.touches[0].clientY;
+          const now = Date.now();
+          if (now - liveLastTap < 280) {
+            if (liveScale > 1.2) { liveScale = 1; liveX = 0; liveY = 0; }
+            else { liveScale = LIVE_MAX; liveX = 0; liveY = 0; }
+          }
+          liveLastTap = now;
+        } else if (e.touches.length === 2) {
+          liveInitDist = getDistance(e.touches[0], e.touches[1]);
+          liveInitScale = liveScale;
+        }
+      }, { passive: false });
+      canvasEl.addEventListener('touchmove', e => {
+        e.preventDefault();
+        if (e.touches.length === 1 && liveScale > 1.05) {
+          liveX += e.touches[0].clientX - liveStartX;
+          liveY += e.touches[0].clientY - liveStartY;
+          liveStartX = e.touches[0].clientX; liveStartY = e.touches[0].clientY;
+        } else if (e.touches.length === 2) {
+          const dist = getDistance(e.touches[0], e.touches[1]);
+          liveScale = Math.max(1, Math.min(LIVE_MAX, liveInitScale * (dist / liveInitDist)));
+        }
+      }, { passive: false });
+    }
+    bindLiveZoom(mainCanvas);
+    bindLiveZoom(recMainCanvas);
+
+    galleryThumb.onclick = galleryThumbRec.onclick = () => { renderGallery(); showScreen('gallery'); };
+    function renderGallery() {
+      galleryGrid.innerHTML = '';
+      images.forEach((src, i) => {
+        const card = document.createElement('div');
+        card.className = 'g-card';
+        const img = document.createElement('img');
+        img.src = src; img.onclick = () => openViewer(i);
+        const del = document.createElement('button');
+        del.className = 'g-del'; del.textContent = '×';
+        del.onclick = e => { e.stopPropagation(); images.splice(i,1); renderGallery(); updateThumbs(); };
+        card.appendChild(img); card.appendChild(del); galleryGrid.appendChild(card);
+      });
+    }
+    function openViewer(index) {
+      currentViewerIndex = index;
+      viewerImg.src = images[index];
+      scale=1; posX=0; posY=0;
+      viewerImg.style.transform = 'translate3d(0,0,0) scale(1)';
+      actionMenu.style.display = 'none';
+      viewer.style.display = 'block';
+    }
+    function closeViewer() {
+      viewer.style.display = 'none'; actionMenu.style.display = 'none'; currentViewerIndex = -1;
+    }
+    function applyTransform() {
+      viewerImg.style.transform = `translate3d(${posX}px,${posY}px,0) scale(${scale})`;
+    }
+    viewerStage.addEventListener('touchstart', e => {
+      e.preventDefault(); moved = false; actionMenu.style.display = 'none';
+      if (e.touches.length === 1) {
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        clearTimeout(longPressTimer);
+        longPressTimer = setTimeout(() => { if (!moved) actionMenu.style.display = 'block'; }, 600);
+        const now = Date.now();
+        if (now - lastTapTime < 280) {
+          clearTimeout(longPressTimer);
+          if (scale > 1.2) { scale=1; posX=0; posY=0; }
+          else { scale = MAX_SCALE; posX=0; posY=0; }
+          applyTransform();
+        }
+        lastTapTime = now;
+      } else if (e.touches.length === 2) {
+        clearTimeout(longPressTimer);
+        initialDistance = getDistance(e.touches[0], e.touches[1]);
+        initialScale = scale;
+      }
+    }, {passive:false});
+    viewerStage.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        const dx = e.touches[0].clientX - startX, dy = e.touches[0].clientY - startY;
+        if (Math.abs(dx)>8 || Math.abs(dy)>8) { moved = true; clearTimeout(longPressTimer); }
+        if (scale > 1.05) {
+          posX += dx; posY += dy;
+          startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+          applyTransform();
+        }
+      } else if (e.touches.length === 2) {
+        clearTimeout(longPressTimer); moved = true;
+        const dist = getDistance(e.touches[0], e.touches[1]);
+        scale = Math.max(1, Math.min(MAX_SCALE, initialScale * (dist/initialDistance)));
+        applyTransform();
+      }
+    }, {passive:false});
+    viewerStage.addEventListener('touchend', () => clearTimeout(longPressTimer), {passive:false});
+
+    document.getElementById('btnSave').onclick = () => {
+      if (currentViewerIndex < 0) return;
+      const a = document.createElement('a');
+      a.href = images[currentViewerIndex];
+      a.download = `residual_${Date.now()}.jpg`;
+      a.click();
+      actionMenu.style.display = 'none';
+    };
+    document.getElementById('btnDelete').onclick = () => {
+      if (currentViewerIndex < 0) return;
+      images.splice(currentViewerIndex, 1);
+      updateThumbs(); closeViewer(); renderGallery();
+    };
+    document.getElementById('btnCancel').onclick = () => { actionMenu.style.display = 'none'; };
+    document.getElementById('viewerClose').onclick = closeViewer;
+
+    window.addEventListener('resize', () => {
+      if (!running) return;
+      const sw = window.innerWidth, sh = window.innerHeight;
+      if (cameraScreen.classList.contains('active')) { mainCanvas.width = sw; mainCanvas.height = sh; }
+      if (recordScreen.classList.contains('active')) { recMainCanvas.width = sw; recMainCanvas.height = sh; }
+    });
+
+    updateThumbs();
+  </script>
+</body>
+</html>
