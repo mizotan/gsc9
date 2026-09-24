@@ -12,7 +12,6 @@
       font-family: "Hiragino Sans", "Noto Sans JP", "Segoe UI", sans-serif;
       line-height: 1.75;
       font-size: 14px;
-      min-height: 100%;
     }
     .wrap {
       max-width: 720px;
@@ -20,81 +19,65 @@
       padding: 28px 18px 64px;
       color: #00FF00;
     }
-    h1, h2, h3, p, ul, li, a, strong, .meta, .note, .copy {
+    h1, h2, h3, p, li, a, strong, th, td, .meta, .note, .footer, .back, .copy {
       color: #00FF00 !important;
     }
     h1 {
       font-size: 1.35rem;
-      letter-spacing: 0.08em;
-      margin-bottom: 0.4em;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.5em;
       text-shadow: 0 0 8px rgba(0, 255, 0, 0.35);
     }
-    .meta {
-      font-size: 12px;
-      margin-bottom: 1.6em;
-    }
+    .meta { font-size: 12px; margin-bottom: 1.8em; }
     h2 {
       font-size: 1.05rem;
-      margin: 1.6em 0 0.55em;
+      margin: 1.8em 0 0.6em;
       padding-bottom: 0.25em;
       border-bottom: 1px solid #00FF00;
     }
-    h3 {
-      font-size: 0.95rem;
-      margin: 1.1em 0 0.35em;
+    h3 { font-size: 0.95rem; margin: 1.1em 0 0.35em; }
+    p, li { margin-bottom: 0.75em; }
+    ol, ul { padding-left: 1.4em; margin-bottom: 0.8em; }
+    li { margin-bottom: 0.4em; }
+    a { color: #00FF00; text-decoration: underline; }
+    table {
+      width: 100%; border-collapse: collapse;
+      margin: 0.8em 0 1em; font-size: 13px;
     }
-    p { margin-bottom: 0.85em; }
-    ul {
-      padding-left: 1.3em;
-      margin-bottom: 0.9em;
-    }
-    li { margin-bottom: 0.35em; }
-    a {
-      color: #00FF00;
-      text-decoration: underline;
-    }
-    .links {
-      margin: 1.2em 0;
-      padding: 12px 14px;
+    th, td {
       border: 1px solid #00FF00;
-      border-radius: 8px;
-      background: #000000;
+      padding: 8px 10px; text-align: left; color: #00FF00;
     }
-    .links a {
-      display: inline-block;
-      margin-right: 1em;
-      margin-bottom: 0.3em;
-      color: #00FF00;
-    }
-    .note {
-      font-size: 12px;
-      margin: 0.8em 0 1em;
-    }
-    .copy {
-      margin-top: 2em;
-      font-size: 12px;
-      text-align: center;
-    }
+    th { background: #001a00; }
     .footer {
-      margin-top: 2.5em;
-      padding-top: 1.2em;
+      margin-top: 2em; padding-top: 1.2em;
       border-top: 1px solid #00FF00;
-      text-align: center;
+      font-size: 12px; text-align: center;
     }
     .back {
-      display: inline-block;
-      margin-bottom: 1.5em;
-      padding: 8px 14px;
-      border: 1px solid #00FF00;
-      border-radius: 8px;
-      color: #00FF00;
-      text-decoration: none;
-      font-size: 13px;
-      background: #000000;
+      display: inline-block; margin-bottom: 1.5em;
+      padding: 8px 14px; border: 1px solid #00FF00;
+      border-radius: 8px; color: #00FF00;
+      text-decoration: none; font-size: 13px; background: #000;
     }
-    .back:active {
-      background: #003300;
+    .back:active { background: #003300; }
+    .note { font-size: 12px; margin-top: 1em; }
+    .copy { margin-top: 2em; font-size: 12px; text-align: center; }
+    .links {
+      margin: 1.2em 0; padding: 12px 14px;
+      border: 1px solid #00FF00; border-radius: 8px; background: #000;
     }
+    .links a { display: inline-block; margin-right: 1em; margin-bottom: 0.3em; }
+    .en-section {
+      margin-top: 2.5em;
+      padding-top: 1.5em;
+      border-top: 1px dashed #00FF00;
+    }
+    .en-section h1 {
+      font-size: 1.2rem;
+      margin-bottom: 0.8em;
+    }
+
   </style>
 </head>
 <body>
@@ -105,7 +88,6 @@
     <p class="meta">Ghost Search Camera　／　盆栽企画</p>
 
     <h2>使い方</h2>
-
     <h3>Camera mode（カメラモード）</h3>
     <ul>
       <li>TOPで「Camera mode」を選び、Manual または Auto を選びます。</li>
@@ -116,7 +98,6 @@
       <li>左の九字ボタンで、撮影画面上に九字切り演出を重ねられます。</li>
       <li>右下のサムネから Gallery を開けます。</li>
     </ul>
-
     <h3>Rec mode（録画モード）</h3>
     <ul>
       <li>TOPで「Rec mode」を選び、30秒または60秒、必要なら音声録音のON/OFFを選びます。</li>
@@ -125,7 +106,6 @@
       <li>動画は端末のダウンロード／保存の仕組みで保存されます（環境によりカメラロールまたはファイル）。</li>
       <li>シャッターやステータス文字など、操作UIは映像に入りません。</li>
     </ul>
-
     <h3>九字切り（Purification Protocol）</h3>
     <ul>
       <li>TOPの「九字切り」から、「刻をイケニエ」にして実行できます。</li>
@@ -134,7 +114,6 @@
       <li>Camera / Rec 中の「九字切り」は、プレビュー（および録画映像）にデジタル九字切り儀式プロトコルを重ねます。</li>
       <li>エンタメ演出であり、宗教的・除霊的な効果を約束するものではありません。</li>
     </ul>
-
     <h3>Gallery（ギャラリー）</h3>
     <ul>
       <li>撮影した静止画の一覧です（動画はギャラリーには入りません）。</li>
@@ -142,48 +121,97 @@
       <li>長押しで保存／削除メニューを出せます。</li>
       <li>ユーザーご自身が画像を保存しなかった場合、アプリ内から削除されることがあります。</li>
     </ul>
-
-    <p class="note">
-      ※ LINEなどアプリ内ブラウザでは、カメラ・録画が使えないことがあります。Chrome や Safari で開くか、「ブラウザで開く」を選んでください。
-    </p>
+    <p class="note">※ LINEなどアプリ内ブラウザでは、カメラ・録画が使えないことがあります。Chrome や Safari で開くか、「ブラウザで開く」を選んでください。</p>
 
     <h2>Ghost Search Camera について</h2>
-    <p>
-      ジョークアプリです。<br>
-      しかしシステム上、「ただのジョークである」と断言もしません。解釈は利用者に委ねます。
-    </p>
-    <p>
-      本アプリは、ランダムな情報を表示するのではなく、プレビュー画面上のノイズや異常値を取得して可視化します。<br>
-      表示されるスコアやマーカー等はアプリ独自の演出ですが、心霊現象の解明や実在を保証するものではありません。<br>
-      ただし、本アプリが捉えるものが「ただのノイズ」にとどまらない可能性を否定するものでもありません。<br>
-      ※「九字切り」等の演出はエンタメ表現であり、宗教的効果や除霊効果を約束するものではありません。
-    </p>
+    <p>ジョークアプリです。<br>しかしシステム上、「ただのジョークである」と断言もしません。解釈は利用者に委ねます。</p>
+    <p>本アプリは、ランダムな情報を表示するのではなく、プレビュー画面上のノイズや異常値を取得して可視化します。<br>
+    表示されるスコアやマーカー等はアプリ独自の演出ですが、心霊現象の解明や実在を保証するものではありません。<br>
+    ただし、本アプリが捉えるものが「ただのノイズ」にとどまらない可能性を否定するものでもありません。<br>
+    ※「九字切り」等の演出はエンタメ表現であり、宗教的効果や除霊効果を約束するものではありません。</p>
 
     <h2>撮影・画像の保存について</h2>
-    <p>
-      Camera modeの画像はアプリ内に一時保存され、ユーザー操作により端末へ保存できます。<br>
-      Rec modeの動画は、端末の保存／ダウンロード機能を通じて保存されます。
-    </p>
-    <p>
-      撮影・録画の際は、周囲の安全とマナーに配慮してお楽しみください。
-    </p>
+    <p>Camera modeの画像はアプリ内に一時保存され、ユーザー操作により端末へ保存できます。<br>
+    Rec modeの動画は、端末の保存／ダウンロード機能を通じて保存されます。</p>
+    <p>撮影・録画の際は、周囲の安全とマナーに配慮してお楽しみください。</p>
 
     <h2>規約・ポリシー</h2>
-    <p>
-      免責事項および詳細な利用条件は利用規約を、情報の取扱いについてはプライバシーポリシーをご確認ください。
-    </p>
+    <p>免責事項および詳細な利用条件は利用規約を、情報の取扱いについてはプライバシーポリシーをご確認ください。</p>
     <div class="links">
       <a href="terms.html">利用規約</a>
       <a href="privacy.html">プライバシーポリシー</a>
     </div>
 
     <h2>表示される広告について</h2>
-    <p>
-      広告内容は盆栽企画が独自に選んだものではありません。<br>
-      広告の表示内容、リンク先やその遷移先で発生したあらゆるトラブル、損害、取引等について、当方は一切の責任を負いません。
-    </p>
+    <p>広告内容は盆栽企画が独自に選んだものではありません。<br>
+    広告の表示内容、リンク先やその遷移先で発生したあらゆるトラブル、損害、取引等について、当方は一切の責任を負いません。</p>
 
     <p class="copy">©盆栽企画 2026 All Rights Reserved.</p>
+
+    <div class="en-section">
+      <h1>English Translation</h1>
+      <p class="meta">Ghost Search Camera / Bonsai Project</p>
+
+      <h2>How to Use</h2>
+      <h3>Camera mode</h3>
+      <ul>
+        <li>On TOP, select “Camera mode,” then choose Manual or Auto.</li>
+        <li><strong>Manual</strong> — captures only when you press the shutter.</li>
+        <li><strong>Auto</strong> — may capture automatically when Ghost Search response is strong.</li>
+        <li>Yellow circles mark approximate areas detected as noise or anomalies.</li>
+        <li>Pinch / double-tap the preview to zoom up to 5× (saved as zoomed).</li>
+        <li>The left Kuji button overlays the Kuji-giri effect on the capture screen.</li>
+        <li>Open Gallery from the thumbnail at the lower right.</li>
+      </ul>
+      <h3>Rec mode</h3>
+      <ul>
+        <li>On TOP, select “Rec mode,” then 30s or 60s, and audio ON/OFF if needed.</li>
+        <li>Start with “● REC”; stop with “■ STOP” or when time runs out.</li>
+        <li>During recording, yellow Ghost Search frames and Kuji overlays can be applied.</li>
+        <li>Video is saved via the device download/save mechanism (Camera Roll or files depending on environment).</li>
+        <li>UI elements such as the shutter and status text are not recorded into the video.</li>
+      </ul>
+      <h3>Kuji-giri (Purification Protocol)</h3>
+      <ul>
+        <li>From TOP “Kuji-giri,” you can run it by “offering a moment” (ad time) as a ritual sacrifice.</li>
+        <li>After START, the digital Kuji-giri ritual plays.</li>
+        <li>The ritual cannot be interrupted. Return with “TOP” when finished.</li>
+        <li>During Camera / Rec, Kuji overlays the digital ritual protocol on the preview (and recorded video).</li>
+        <li>This is entertainment only; no religious or exorcism effects are promised.</li>
+      </ul>
+      <h3>Gallery</h3>
+      <ul>
+        <li>List of captured still images (videos are not stored in Gallery).</li>
+        <li>Tap a thumbnail to enlarge (up to 5×).</li>
+        <li>Long-press for save / delete menu.</li>
+        <li>If you do not save images yourself, they may be removed from the in-app store.</li>
+      </ul>
+      <p class="note">* In in-app browsers such as LINE, camera/recording may not work. Open in Chrome or Safari, or choose “Open in browser.”</p>
+
+      <h2>About Ghost Search Camera</h2>
+      <p>This is a joke app.<br>
+      However, the system does not assert that it is “only a joke.” Interpretation is left to the user.</p>
+      <p>The app does not show random unrelated data; it visualizes noise and anomaly values from the preview.<br>
+      Scores and markers are the app’s own presentation and do not prove or guarantee paranormal phenomena.<br>
+      We also do not deny the possibility that what is captured is more than “mere noise.”<br>
+      * Kuji-giri and similar effects are entertainment and do not promise religious or cleansing effects.</p>
+
+      <h2>Capture and Saving</h2>
+      <p>Camera mode images are temporarily kept in the app and can be saved to the device by user action.<br>
+      Rec mode videos are saved through the device’s save/download features.</p>
+      <p>Please enjoy capture and recording with attention to safety and manners.</p>
+
+      <h2>Terms &amp; Policy</h2>
+      <p>See the Terms of Use for disclaimers and detailed conditions, and the Privacy Policy for how information is handled.</p>
+      <div class="links">
+        <a href="terms.html">Terms of Use</a>
+        <a href="privacy.html">Privacy Policy</a>
+      </div>
+
+      <h2>About Displayed Ads</h2>
+      <p>Ad content is not independently selected by Bonsai Project.<br>
+      We assume no responsibility for any trouble, damage, or transactions arising from ad content, linked destinations, or further redirects.</p>
+    </div>
 
     <div class="footer">
       <a class="back" href="index.html">TOPへ戻る</a>
