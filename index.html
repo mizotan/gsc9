@@ -718,9 +718,7 @@
       renderGallery(); showScreen('gallery');
     };
     document.getElementById('btnInfo').onclick = () => {
-      setSelected(null, [btnCameraMode, btnRecordMode]);
-      cameraSub.classList.remove('active'); recordSub.classList.remove('active'); audioRow.classList.remove('active');
-      showScreen('info');
+      location.href = 'information.html';
     };
     document.getElementById('btnInfoBack').onclick = () => showScreen('mode');
     btnManual.onclick = () => { setSelected(btnManual, [btnManual, btnAuto]); startCamera('manual'); };
